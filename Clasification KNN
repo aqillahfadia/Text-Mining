@@ -1,0 +1,134 @@
+import string
+from sklearn.pipeline import Pipeline
+import pandas as pd
+import numpy as np
+import re, os
+from collections import defaultdict
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.preprocessing import LabelEncoder
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import ConfusionMatrixDisplay
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.metrics import classification_report
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import confusion_matrix
+
+data_clean = pd.read_csv('lexicon2.csv', encoding='latin1')
+data_clean
+
+data_clean = data_clean.astype({'klasifikasi' : 'category'})
+data_clean = data_clean.astype({'Tweet' : 'string'})
+data_clean.dtypes
+
+from sklearn.feature_extraction.text import CountVectorizer
+tf = CountVectorizer()
+term_doc_matrix = tf.fit_transform(data_clean["Tweet"].values)
+pd.DataFrame(term_doc_matrix.toarray(), index=(data_clean["Tweet"]).keys(), columns=tf.get_feature_names())
+
+from sklearn.feature_extraction.text import TfidfVectorizer
+
+vectorizer = TfidfVectorizer()
+response = vectorizer.fit_transform(data_clean['Tweet'])
+print(response)
+response.todense()
+
+import pandas as pd
+
+df = pd.DataFrame(response.todense().T,
+                  index=vectorizer.get_feature_names(),
+                  columns=[f'D{i+1}' for i in range(len(data_clean['Tweet']))])
+df.head(1224)
+
+from sklearn.metrics.pairwise import cosine_similarity
+
+dj=pd.DataFrame(cosine_similarity(df, dense_output=True))
+
+dj.head()
+
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.feature_extraction.text import TfidfVectorizer
+
+vectorizer = CountVectorizer()
+X = vectorizer.fit_transform(data_clean['Tweet'].astype('U'))
+
+tf = TfidfVectorizer()
+text_tf = tf.fit_transform(data_clean['Tweet'].astype('U'))
+print(text_tf)
+
+cos_sim=cosine_similarity(text_tf, text_tf)
+
+print(cos_sim)
+
+from sklearn.metrics.pairwise import euclidean_distances
+ed = euclidean_distances(cos_sim, cos_sim)
+df_ed = pd.DataFrame(ed, index=(data_clean["Tweet"]).keys(), columns=(data_clean["Tweet"]).keys())
+df_ed
+
+# splitting data 
+import collections, numpy
+from sklearn.model_selection import train_test_split
+X_train, X_test, y_train, y_test = train_test_split(df_ed, data_clean['klasifikasi'], test_size=0.4, random_state=42)
+print("Jumlah Data Uji:", X_test.shape)
+print("Jumlah Data Latih:",X_train.shape)
+
+pos = (y_test == 'positif').sum()
+neg = (y_test == 'negatif').sum()
+postrain = (y_train == 'positif').sum()
+negtrain = (y_train == 'negatif').sum()
+total = pos + neg
+print("Jumlah data uji dengan sentimen positif:", pos)
+print("Jumlah data uji dengan sentimen negatif:",neg)
+print("Jumlah data latih dengan sentimen positif:", postrain)
+print("Jumlah data latih dengan sentimen negatif:",negtrain)
+data_clean['klasifikasi'].value_counts()
+
+lb = LabelEncoder()
+lb.fit(y_train)
+
+y_train = lb.transform(y_train)
+y_test = lb.transform(y_test)
+
+scaler = StandardScaler()
+scaler.fit(X_train)
+
+X_train = scaler.transform(X_train)
+X_test = scaler.transform(X_test)
+
+error = []
+
+for i in range(1, 40):
+    knn = KNeighborsClassifier(n_neighbors=i)
+    knn.fit(X_train, y_train)
+
+    pred_i = knn.predict(X_test)
+    error.append(np.mean(pred_i != y_test))
+
+plt.figure()
+plt.plot(range(1, 40), error, color='red', marker='o',
+         markerfacecolor='blue', markersize=10)
+plt.title('Rata-Rata Error terhadap nilai K')
+plt.xlabel('Nilai K')
+plt.ylabel('Rata-Rata Error')
+plt.show()
+
+classifier = KNeighborsClassifier(n_neighbors=18)
+classifier.fit(X_train, y_train)
+y_pred = classifier.predict(X_test)\
+
+from sklearn.metrics import confusion_matrix
+
+cm = confusion_matrix(y_test, y_pred)
+
+print('Confusion matrix\n\n', cm)
+
+print('\nTrue Positives(TP) = ', cm[0,0])
+
+print('\nTrue Negatives(TN) = ', cm[1,1])
+
+print('\nFalse Positives(FP) = ', cm[0,1])
+
+print('\nFalse Negatives(FN) = ', cm[1,0])
+
+y_pred = classifier.predict(X_test)
+print(classification_report(y_test, y_pred, target_names=lb.classes_))

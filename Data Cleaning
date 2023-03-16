@@ -1,0 +1,69 @@
+pip install emoji
+pip install contractions
+import pandas as pd
+import emoji
+import contractions
+import re
+import string
+import nltk
+nltk.download('punkt')
+
+# Impor word_tokenize dari NLTK
+from nltk.tokenize import word_tokenize 
+
+def cleansing(tweet):
+  # menghapus RT tag
+  t1 = re.sub('RT\s', '', tweet)
+  
+  # menghapus @username
+  t2 = re.sub('\B@\w+', "", t1)
+
+  # replace emoji with text
+  t3 = emoji.demojize(t2)
+
+  # replace URL
+  t4 = re.sub('(http|https):\/\/\S+', '', t3)
+  
+  # replace #something
+  t5 = re.sub('#+', '', t4)
+
+  # replace lowercase
+  t6 = t5.lower()
+
+  # mengganti kata 'kamuuuuuuuu' menjadi 'kamu'
+  t7 = re.sub(r'(.)\1+', r'\1\1', t6)
+
+  # mengganti simbol '!!!!!!!!!!!' menjadi '!'
+  t8 = re.sub(r'[\?\.\!]+(?=[\?.\!])', '', t7)
+
+  # alphabets only, ex
+  t9 = re.sub(r'[^a-zA-Z]', ' ', t8)
+
+  # replace contractions with their extended form
+  t10 = contractions.fix(t9)
+  
+  # replace whitespace
+  t11 = t10.strip()
+
+  # Menghapus beberapa whitespace menjadi whitespace tunggal
+  t12 = re.sub(r'\s+',' ', t11)
+
+  # sastrawi
+  
+
+  return t12
+
+df = pd.read_csv('gofood.csv', usecols=['date', 'tweet'])
+df.head()
+
+# for i, r in df.iterrows():
+#   y = cleansing(r['tweet'])
+#   df.loc[i, 'tweet'] = y
+
+# df.head(10000)
+
+cleaned = df.tweet.map(cleansing)
+cleaned
+
+df.to_csv('cleaned_tweets.csv', index=False)   #save data cleansing
+

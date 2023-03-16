@@ -1,0 +1,22 @@
+!pip install tweepy #modul API yang dibuka oleh Twitter untuk mengambil data-data yang ada di Twitter
+
+import tweepy
+import csv
+
+consumer_key = 'hE4aGa8Uex8eXAPcBEMjCkeRU'                              #token yang di dapat dari twitter developer
+consumer_secret = 'DQ030yUckBOoG0GGi4qPHm6oAvV5njvTcB4YIrHb7MBKlVTr1g'  
+access_token = '1103455058761408512-DYsploeAv4sbVWw3VwJvFL0kdEDEOt'     
+access_token_secret = 'q29RApuKSkeM40YVK4QLtIMDu0MR45SGDxVzVOULYQfqM'
+
+auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
+auth.set_access_token(access_token, access_token_secret)
+api = tweepy.API(auth,wait_on_rate_limit=True)
+
+csvFile = open('gofood.csv', 'a')     #
+csvWriter = csv.writer(csvFile)
+
+for tweet in tweepy.Cursor(api.search,q="gofood",count=100,         #masukan kata kunci yang ingin di butuhkan
+                           lang="id",
+                           since="2022-02-01").items():             #masukan rentang tanggal yang di butuhkan
+print (tweet.created_at, tweet.text)
+csvWriter.writerow([tweet.created_at, tweet.text.encode('utf-8')])
